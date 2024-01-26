@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimum Sampling Volume Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+    <style>
+        /* Style for superscript */
+        .superscript {
+            vertical-align: super;
+            font-size: smaller;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+        }
+
+        button {
+            font-family: 'Raleway', sans-serif;
+        }
+        /* Some padding for the button */
+        label {
+            margin-bottom: 10px;
+        }
+
+        button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Minimum Sampling Volume Calculator</h1>
+
+    <form id="calculator-form">
+        <label for="concentration">Concentration (particles / m<span class="superscript">3</span>):</label>
+        <input type="text" id="concentration" required>
+        
+        <label for="mdaa">Limit of detection (of particle):</label>
+        <input type="text" id="mdaa" required>
+        
+        <label for="probability">Desired Probability:</label>
+        <input type="text" id="probability" required>
+        
+        <button type="button" onclick="calculateMinimumVolume()">Calculate</button>
+    </form>
+
+    <p id="result"></p>
+
+    <!-- Canvas for the concentration vs. minimum sampling volume figure -->
+    <canvas id="chart"></canvas>
+
+    <script>
+        var myChart;
+
+        function calculateMinimumVolume() {
+            // Get user inputs
+            var c = parseFloat(document.getElementById('concentration').value);
+            var mdaa = parseInt(document.getElementById('mdaa').value);
+            var desiredProbability = parseFloat(document.getElementById('probability').value);
+            
+            var v = 1.0;
+
+            while (true) {
+                var lambdaVal = c * v / 1000;
+                var prob = 1 - calculateProbability(lambdaVal, mdaa);
+                
+                if (prob >= desiredProbability) {
+                    // Display result
+                    document.getElementById('result').innerText = "Minimum Sampling Volume: " + v + " L";
+                    
+                    // Destroy previous chart if exists
+                    if (myChart) {
+                        myChart.destroy();
+                    }
+
+                    plotChart(c, v, mdaa, desiredProbability);
+                    break;
+                }
+                v += 1.0;
+            }
+        }
+
+        function calculateProbability(lambda, mdaa) {
+            var probability = 0;
+
+            for (var i = 0; i < mdaa; i++) {
+                probability += Math.exp(-lambda) * Math.pow(lambda, i) / factorial(i);
+            }
+
+            return probability;
+        }
+
+        function factorial(n) {
+            if (n === 0 || n === 1) {
+                return 1;
+            } else {
+                return n * factorial(n - 1);
+            }
+        }
+
+        function plotChart(concentration, volume, mdaa, desiredProbability) {
+            var ctx = document.getElementById('chart').getContext('2d');
+
+            // Data for the scatter plot
+            var scatterData = {
+                labels: [concentration],
+                datasets: [{
+                    label: 'Concentration vs. Minimum Sampling Volume',
+                    data: [{ x: concentration, y: volume }],
+                    backgroundColor: 'rgba(0, 0, 0, 1)',
+                    borderColor: 'rgba(0, 0, 0, 1)', 
+                    borderWidth: 2,
+                    type: 'scatter'
+                }]
+            };
+
+            // Data for the line representing the relationship
+            var lineData = {
+                label: 'Concentration vs. Volume Relationship',
+                data: calculateRelationshipData(0.1, mdaa, desiredProbability),
+                borderColor: 'rgba(0, 67, 105, 1)',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0,
+                type: 'line'
+            };
+
+            scatterData.datasets.push(lineData);
+
+            var chartOptions = {
+                scales: {
+                    x: {
+                        type: 'logarithmic',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Concentration (particles/m3)',
+                            fontFamily: 'Raleway'
+                        },
+                        min: concentration / 10,
+                        max: concentration * 10
+                    },
+                    y: {
+                        type: 'logarithmic',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Minimum Sampling Volume (L)',
+                            fontFamily: 'Raleway'
+                        }
+                    }
+                },
+                plugins: {
+                    annotation: {
+                        fontFamily: 'Raleway'
+                    }
+                }
+            };
+
+            myChart = new Chart(ctx, {
+                data: scatterData,
+                options: chartOptions
+            });
+        }
+
+        function calculateRelationshipData(initialConcentration, mdaa, desiredProbability) {
+            var relationshipData = [];
+            
+            for (var c = initialConcentration; c <= 1e7; c *= 10) {
+                var v = 1.0;
+                var lambdaVal = c * v / 1000;
+                var prob = 1 - calculateProbability(lambdaVal, mdaa);
+
+                while (prob < desiredProbability) {
+                    v += 1.0;
+                    lambdaVal = c * v / 1000;
+                    prob = 1 - calculateProbability(lambdaVal, mdaa);
+                }
+
+                relationshipData.push({ x: c, y: v });
+            }
+
+            return relationshipData;
+        }
+    </script>
+
+</body>
+</html>
