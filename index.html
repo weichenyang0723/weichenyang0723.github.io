@@ -36,13 +36,13 @@
     <h1>Minimum Sampling Volume Calculator</h1>
 
     <form id="calculator-form">
-        <label for="concentration">Concentration (particles / m<span class="superscript">3</span>):</label>
+        <label for="concentration">Concentration (particles / m<span class="superscript">3</span>) (>= 1 integer only):</label>
         <input type="text" id="concentration" required>
         
-        <label for="mdaa">Limit of detection (of particle):</label>
+        <label for="mdaa">Limit of detection (>= 1 integer only):</label>
         <input type="text" id="mdaa" required>
         
-        <label for="probability">Desired Probability:</label>
+        <label for="probability">Desired Probability (0-1):</label>
         <input type="text" id="probability" required>
         
         <button type="button" onclick="calculateMinimumVolume()">Calculate</button>
